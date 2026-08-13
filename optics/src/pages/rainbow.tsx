@@ -20,7 +20,6 @@ const Rainbow: React.FC = () => {
     let mountElement: HTMLDivElement | null;
 
     const init = () => {
-      // Camera
       camera = new THREE.PerspectiveCamera(
         60,
         window.innerWidth / window.innerHeight,
@@ -29,18 +28,16 @@ const Rainbow: React.FC = () => {
       );
       camera.position.set(0, 65, 2000);
 
-      // Scene
       scene = new THREE.Scene();
 
       const ground = new THREE.Mesh(
         new THREE.PlaneGeometry(10000, 10000),
         new THREE.MeshBasicMaterial({ color: "green", side: THREE.DoubleSide })
       );
-      ground.rotation.x = -Math.PI / 2; // Rotate to be horizontal
+      ground.rotation.x = -Math.PI / 2;
       ground.position.y = 0;
       scene.add(ground);
 
-      // Renderer
       renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setPixelRatio(window.devicePixelRatio);
       renderer.setSize(window.innerWidth, window.innerHeight);
@@ -49,7 +46,6 @@ const Rainbow: React.FC = () => {
       mountElement = mountRef.current;
       mountElement?.appendChild(renderer.domElement);
 
-      // Controls
       const controls = new OrbitControls(camera, renderer.domElement);
       controls.enableZoom = false;
       controls.enablePan = false;
@@ -64,14 +60,12 @@ const Rainbow: React.FC = () => {
     };
 
     const initSky = () => {
-      // Add Sky
       sky = new Sky();
       sky.scale.setScalar(100000);
       scene.add(sky);
 
       sun = new THREE.Vector3();
 
-      // GUI Controller
       const effectController = {
         elevation: 0,
       };
@@ -84,7 +78,6 @@ const Rainbow: React.FC = () => {
         sun.setFromSphericalCoords(1, phi, theta);
         uniforms["sunPosition"].value.copy(sun);
 
-        // Update rainbow orientation when sun angle changes
         updateRainbowOrientation();
       };
 
@@ -167,7 +160,6 @@ const Rainbow: React.FC = () => {
         secondaryCanvas.width / 2
       );
 
-      // Secondary rainbow has reversed colors and is dimmer
       secondaryGradient.addColorStop(0.0, "#8f00ff"); // violet
       secondaryGradient.addColorStop(0.17, "#4b0082"); // indigo
       secondaryGradient.addColorStop(0.33, "#0000ff"); // blue
@@ -206,7 +198,6 @@ const Rainbow: React.FC = () => {
     const updateRainbowOrientation = () => {
       if (!rainbow || !sun) return;
 
-      // Update primary rainbow orientation
       rainbow.lookAt(sun);
 
       // Update secondary rainbow orientation (find it in the scene)

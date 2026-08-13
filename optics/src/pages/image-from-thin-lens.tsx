@@ -19,25 +19,22 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
   const { setTheme } = useTheme();
   setTheme("dark");
 
-  // no scrollbar
   document.body.style.overflow = "hidden";
   document.documentElement.style.overflow = "hidden";
 
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [objPos, setObjPos] = useState({ x: 1.5, y: 0.5 }); // object position (must be > focal length)
-  const [focalLength, setFocalLength] = useState(5); // focal length
+  const [objPos, setObjPos] = useState({ x: 1.5, y: 0.5 });
+  const [focalLength, setFocalLength] = useState(5);
 
   const [showEquations, setShowEquations] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const imgRef = useRef<HTMLImageElement | null>(null);
 
-  // Popup state for equations
   const [isDraggingPopup, setIsDraggingPopup] = useState(false);
   const [popupPos, setPopupPos] = useState({ x: 100, y: 100 });
   const popupDragOffset = useRef({ x: 0, y: 0 });
 
-  // Handle file upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -49,7 +46,6 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
     reader.readAsDataURL(file);
   };
 
-  // Convert screen pixel → world coordinate
   const screenToWorld = (
     px: number,
     py: number,
@@ -64,18 +60,15 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
     };
   };
 
-  // Calculate image position using thin lens equation
   const calculateImagePosition = (objX: number, objY: number) => {
     // Convex lens behavior:
     // - Object outside focal length (x > f): Real, inverted image
     // - Object inside focal length (x < f): Virtual, upright, enlarged image
     if (objX >= focalLength) {
-      // Real image - use standard thin lens equation
       const imageX = (-focalLength / (objX - focalLength)) * objX;
       const imageY = (objY / objX) * imageX;
       return { x: imageX, y: imageY, type: "real" as const };
     } else {
-      // Virtual image - appears on same side as object
       const imageX = (focalLength / (focalLength - objX)) * objX;
       const imageY = (objY / objX) * imageX;
       return { x: imageX, y: imageY, type: "virtual" as const };
@@ -87,16 +80,15 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
     ctx: CanvasRenderingContext2D,
     screen: (x: number, y: number) => { x: number; y: number }
   ) => {
-    const lensHeight = 10.0; // lens height in world units
+    const lensHeight = 10.0;
     const halfHeight = lensHeight / 2;
-    const lensWidth = 0.3; // lens thickness
+    const lensWidth = 0.3;
     const halfWidth = lensWidth / 2;
 
-    // Create curved lens shape
     ctx.beginPath();
     ctx.moveTo(screen(0, halfHeight).x, screen(-halfWidth, halfHeight).y);
 
-    // Left surface curve 
+    // Left surface curve
     ctx.quadraticCurveTo(
       screen(-halfWidth - 0.2, 0).x,
       screen(-halfWidth - 0.2, 0).y,
@@ -104,7 +96,7 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
       screen(-halfWidth, -halfHeight).y
     );
 
-    // Right surface curve 
+    // Right surface curve
     ctx.quadraticCurveTo(
       screen(halfWidth + 0.2, 0).x,
       screen(halfWidth + 0.2, 0).y,
@@ -115,7 +107,6 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
     ctx.closePath();
   };
 
-  // Popup drag handlers
   const handlePopupMouseDown = (e: React.MouseEvent) => {
     setIsDraggingPopup(true);
     popupDragOffset.current = {
@@ -136,7 +127,6 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
     setIsDraggingPopup(false);
   };
 
-  // Add popup drag event listeners
   React.useEffect(() => {
     if (isDraggingPopup) {
       document.addEventListener("mousemove", handlePopupMouseMove);
@@ -194,11 +184,9 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
           if (!imageSrc) return;
           const mouseWorld = screenToWorld(e.clientX, e.clientY, vp, canvas);
 
-          // Assume image width/height in world units
           const imgW = 0.5;
           const imgH = 0.5;
 
-          // Check if clicked inside object bounds
           if (
             mouseWorld.x >= objPos.x - imgW / 2 &&
             mouseWorld.x <= objPos.x + imgW / 2 &&
@@ -220,12 +208,9 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
           if (!isDragging) return;
           const mouseWorld = screenToWorld(e.clientX, e.clientY, vp, canvas);
 
-          // Allow object to be placed anywhere for both lens types
-          // This enables virtual image formation when object is inside focal length
           let newX = mouseWorld.x - dragOffset.current.x;
+          newX = Math.max(0.1, newX); // keep the object off the lens
 
-          // Ensure object doesn't get too close to the lens (minimum distance)
-          newX = Math.max(0.1, newX);
           setObjPos({
             x: newX,
             y: mouseWorld.y - dragOffset.current.y,
@@ -245,7 +230,6 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
             };
           };
 
-          // Draw lens at x=0
           const lensHeight = 10;
           const halfHeight = lensHeight / 2;
 
@@ -257,7 +241,6 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
           ctx.fill();
           ctx.stroke();
 
-          // Add lens center line for better visibility
           ctx.strokeStyle = "#00aaff";
           ctx.lineWidth = 1;
           ctx.setLineDash([2, 2]);
@@ -267,45 +250,38 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
           ctx.stroke();
           ctx.setLineDash([]);
 
-          // Draw focal points
           const f1 = screen(-focalLength, 0);
           const f2 = screen(focalLength, 0);
 
-          // Draw focal point indicators
           ctx.fillStyle = "#00aaff";
           ctx.strokeStyle = "#ffffff";
           ctx.lineWidth = 1;
 
-          // Left focal point
           ctx.beginPath();
           ctx.arc(f1.x, f1.y, 5, 0, 2 * Math.PI);
           ctx.fill();
           ctx.stroke();
 
-          // Right focal point
           ctx.beginPath();
           ctx.arc(f2.x, f2.y, 5, 0, 2 * Math.PI);
           ctx.fill();
           ctx.stroke();
 
-          // Add focal point labels
           ctx.fillStyle = "#ffffff";
           ctx.font = "12px Arial";
           ctx.textAlign = "center";
           ctx.fillText("F", f1.x, f1.y - 10);
           ctx.fillText("F", f2.x, f2.y - 10);
 
-          // Draw uploaded image + calculated image
           if (imageSrc) {
             if (!imgRef.current) {
               imgRef.current = new Image();
               imgRef.current.src = imageSrc;
             }
             const img = imgRef.current;
-            const imgW = 1; // Width in world coordinates
-            const imgH = 1; // Height in world coordinates
+            const imgW = 1;
+            const imgH = 1;
 
-            // --- Draw original ---
             const topLeft = screen(objPos.x - imgW / 2, objPos.y + imgH / 2);
             const topRight = screen(objPos.x + imgW / 2, objPos.y + imgH / 2);
             const bottomLeft = screen(objPos.x - imgW / 2, objPos.y - imgH / 2);
@@ -318,32 +294,27 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
               bottomLeft.y - topLeft.y
             );
 
-            // --- Draw warped image using pixel-by-pixel mapping ---
+            // remap the source image pixel-by-pixel through the lens equations
             const imagePos = calculateImagePosition(objPos.x, objPos.y);
             if (imagePos) {
               ctx.save();
 
-              // Draw the warped image - ensures each pixel maps exactly where the construction lines meet
-              const pixelResolution = 200; // Resolution for performance
+              const pixelResolution = 200;
 
-              // Map each pixel of the source image through the lens equations
               for (let y = 0; y < pixelResolution; y++) {
                 for (let x = 0; x < pixelResolution; x++) {
-                  // Convert pixel coordinates to world coordinates
                   const worldX =
                     objPos.x - imgW / 2 + (imgW * x) / pixelResolution;
                   const worldY =
                     objPos.y - imgH / 2 + (imgH * y) / pixelResolution;
 
-                  // Calculate where this specific pixel appears in image space using lens equations
                   const warpedPos = calculateImagePosition(worldX, worldY);
 
                   if (warpedPos) {
-                    // Calculate the source position in the original image
                     const srcX = (x / pixelResolution) * img.width;
                     const srcY = (y / pixelResolution) * img.height;
 
-                    const pixelSize = 4; 
+                    const pixelSize = 4;
 
                     const warpedScreen = screen(warpedPos.x, warpedPos.y);
 
@@ -365,7 +336,6 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
               ctx.restore();
             }
 
-            // Draw ray tracing
             if (imagePos) {
               ctx.strokeStyle = "#ff4444";
               ctx.lineWidth = 3;
@@ -373,15 +343,15 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
 
               // Ray 1: Parallel to axis, through lens, then through focus to image
               const ray1Start = screen(objPos.x, objPos.y);
-              const ray1Lens = screen(0, objPos.y); // Where ray hits lens
-              const ray1End = screen(imagePos.x, imagePos.y); // Through image
+              const ray1Lens = screen(0, objPos.y);
+              const ray1End = screen(imagePos.x, imagePos.y);
               ctx.beginPath();
               ctx.moveTo(ray1Start.x, ray1Start.y);
               ctx.lineTo(ray1Lens.x, ray1Lens.y);
               ctx.lineTo(ray1End.x, ray1End.y);
               ctx.stroke();
 
-              // Ray 2: Through center of lens 
+              // Ray 2: Through center of lens
               const ray2Start = screen(objPos.x, objPos.y);
               const ray2End = screen(imagePos.x, imagePos.y);
               ctx.beginPath();
@@ -389,10 +359,9 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
               ctx.lineTo(ray2End.x, ray2End.y);
               ctx.stroke();
 
-              // Ray 3
               const ray3Start = screen(objPos.x, objPos.y);
-              const ray3Lens = screen(0, objPos.y); // ray hits lens
-              const ray3End = screen(imagePos.x, imagePos.y); // parallel to axis through image
+              const ray3Lens = screen(0, objPos.y);
+              const ray3End = screen(imagePos.x, imagePos.y);
               ctx.beginPath();
               ctx.moveTo(ray3Start.x, ray3Start.y);
               ctx.lineTo(ray3Lens.x, ray3Lens.y);
@@ -401,7 +370,6 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
 
               // for virtual images, extend rays to show virtual image location
               if (imagePos.type === "virtual") {
-                // extend ray 2 through the right focal point to show virtual image
                 const leftFocalPoint = screen(-focalLength, 0);
                 const origin = screen(0, 0);
                 ctx.strokeStyle = "#ff8888";
@@ -413,27 +381,22 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
                 ctx.lineTo(origin.x, origin.y);
                 ctx.stroke();
 
-                // reset line style
                 ctx.strokeStyle = "#ff4444";
                 ctx.setLineDash([8, 4]);
               }
 
-              // reset line style
               ctx.setLineDash([]);
               ctx.lineWidth = 1;
             }
           }
 
-          // draw coordinate labels
           ctx.fillStyle = "#ffffff";
           ctx.font = "14px Arial";
           ctx.textAlign = "center";
 
-          // object label
           const objLabel = screen(objPos.x, objPos.y + 0.8);
           ctx.fillText("(x, y)", objLabel.x, objLabel.y);
 
-          // image label
           if (imageSrc) {
             const imagePos = calculateImagePosition(objPos.x, objPos.y);
             if (imagePos) {
@@ -451,7 +414,6 @@ const ThinLensSimulation: React.FC<ThinLensSimulationProps> = () => {
         }}
       />
 
-      {/* Popup */}
       {showEquations && (
         <div
           className="fixed max-w-sm z-[999999] cursor-move"

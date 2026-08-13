@@ -18,17 +18,15 @@ const MirrorSimulation: React.FC<MirrorSimulationProps> = () => {
   const { setTheme } = useTheme();
   setTheme("dark");
 
-  // no scrollbar
   document.body.style.overflow = "hidden";
   document.documentElement.style.overflow = "hidden";
 
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [imgPos, setImgPos] = useState({ x: 1, y: 1 }); // position in world coords
+  const [imgPos, setImgPos] = useState({ x: 1, y: 1 });
   const [isDragging, setIsDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const imgRef = useRef<HTMLImageElement | null>(null);
 
-  // Handle file upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -40,7 +38,6 @@ const MirrorSimulation: React.FC<MirrorSimulationProps> = () => {
     reader.readAsDataURL(file);
   };
 
-  // Convert screen pixel → world coordinate
   const screenToWorld = (
     px: number,
     py: number,
@@ -79,11 +76,9 @@ const MirrorSimulation: React.FC<MirrorSimulationProps> = () => {
           if (!imageSrc) return;
           const mouseWorld = screenToWorld(e.clientX, e.clientY, vp, canvas);
 
-          // Assume image width/height in world units
           const imgW = 1;
           const imgH = 1;
 
-          // Check if clicked inside image bounds
           if (
             mouseWorld.x >= imgPos.x - imgW / 2 &&
             mouseWorld.x <= imgPos.x + imgW / 2 &&
@@ -123,7 +118,6 @@ const MirrorSimulation: React.FC<MirrorSimulationProps> = () => {
             };
           };
 
-          // Draw mirror at x=0
           const p1 = screen(0, -10000),
             p2 = screen(0, 10000);
           ctx.strokeStyle = "red";
@@ -133,7 +127,6 @@ const MirrorSimulation: React.FC<MirrorSimulationProps> = () => {
           ctx.lineTo(p2.x, p2.y);
           ctx.stroke();
 
-          // Draw uploaded image + reflection
           if (imageSrc) {
             if (!imgRef.current) {
               imgRef.current = new Image();
@@ -143,22 +136,18 @@ const MirrorSimulation: React.FC<MirrorSimulationProps> = () => {
             const imgW = 1;
             const imgH = 1;
 
-            // Original image position
             const screenPos = screen(imgPos.x - imgW / 2, imgPos.y + imgH / 2);
             const wPx = imgW * vp.scale;
             const hPx = imgH * vp.scale;
 
-            // Draw original image
             ctx.drawImage(img, screenPos.x, screenPos.y, wPx, hPx);
 
-            // Calculate reflection position
             const reflectedX = -imgPos.x;
             const reflectedScreenPos = screen(
               reflectedX + imgW / 2,
               imgPos.y + imgH / 2
             );
 
-            // Draw reflected image
             ctx.save();
             ctx.scale(-1, 1); // Flip horizontally
             ctx.drawImage(

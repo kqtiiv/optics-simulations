@@ -8,8 +8,8 @@ import { NavbarLogo } from "@/components/ui/resizable-navbar";
 
 export default function Prism() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [oddAngle, setOddAngle] = useState(60); // Default 60 degrees
-  const [lineAngle, setLineAngle] = useState(0); // Default 0 degrees
+  const [oddAngle, setOddAngle] = useState(60);
+  const [lineAngle, setLineAngle] = useState(0);
 
   const colors = [
     "red",
@@ -44,14 +44,11 @@ export default function Prism() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Set canvas size
     canvas.width = document.documentElement.clientWidth;
     canvas.height = 400;
 
-    // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Triangle geometry
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     const height = 150;
@@ -66,7 +63,6 @@ export default function Prism() {
     const rightX = centerX + adjustedBaseWidth / 2;
     const rightY = centerY + height / 2;
 
-    // Draw triangle
     ctx.beginPath();
     ctx.moveTo(topX, topY);
     ctx.lineTo(leftX, leftY);
@@ -78,7 +74,6 @@ export default function Prism() {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Labels
     ctx.fillStyle = "black";
     ctx.font = "16px Arial";
     ctx.textAlign = "center";
@@ -94,7 +89,6 @@ export default function Prism() {
       rightY + 20
     );
 
-    // Line from middle of left edge
     const lineStartX = (topX + leftX) / 2;
     const lineStartY = (topY + leftY) / 2;
     const lineLength = 100;
@@ -129,7 +123,6 @@ export default function Prism() {
       // Final angle inside prism
       const finalAngleRad = normalAngleLeft + refractedAngleRad;
 
-      // Right edge geometry
       const rightEdgeSlope = (rightY - topY) / (rightX - topX);
       const rightEdgeAngleRad = Math.atan2(rightY - topY, rightX - topX);
       const rightEdgeIntercept = rightY - rightEdgeSlope * rightX;
@@ -152,7 +145,6 @@ export default function Prism() {
         iy = beamSlope * ix + beamIntercept;
       }
 
-      // Draw segment inside prism
       ctx.beginPath();
       ctx.moveTo(lineStartX, lineStartY);
       ctx.lineTo(ix, iy);
@@ -160,7 +152,6 @@ export default function Prism() {
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Draw normal at left edge
       const normalLength = 30;
       const leftNormalEndX =
         lineStartX + normalLength * Math.cos(normalAngleLeft);
@@ -174,15 +165,14 @@ export default function Prism() {
 
       ctx.strokeStyle = "white";
       ctx.lineWidth = 2;
-      ctx.setLineDash([5, 5]); // Dashed line for normal
+      ctx.setLineDash([5, 5]);
       ctx.beginPath();
       ctx.moveTo(leftNormalStartX, leftNormalStartY);
       ctx.lineTo(leftNormalEndX, leftNormalEndY);
       ctx.stroke();
-      ctx.setLineDash([]); // Reset to solid line
+      ctx.setLineDash([]);
 
       // ---- Second refraction ----
-      // Normal
       const normalAngleRad = rightEdgeAngleRad - Math.PI / 2;
 
       // Snell's law: n_prism * sin(θ1) = n_air * sin(θ2)
@@ -200,7 +190,6 @@ export default function Prism() {
       // beam angle in world coordinates
       const outgoingAngleRad = normalAngleRad - theta2;
 
-      // extend outgoing ray
       const outLength = 200;
       const ox = ix + outLength * Math.cos(outgoingAngleRad);
       const oy = iy + outLength * Math.sin(outgoingAngleRad);
@@ -212,7 +201,6 @@ export default function Prism() {
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // draw normal
       const rightNormalEndX = ix + normalLength * Math.cos(normalAngleRad);
       const rightNormalEndY = iy + normalLength * Math.sin(normalAngleRad);
       const rightNormalStartX = ix - normalLength * Math.cos(normalAngleRad);
@@ -220,12 +208,12 @@ export default function Prism() {
 
       ctx.strokeStyle = "white";
       ctx.lineWidth = 2;
-      ctx.setLineDash([5, 5]); // Dashed line for normal
+      ctx.setLineDash([5, 5]);
       ctx.beginPath();
       ctx.moveTo(rightNormalStartX, rightNormalStartY);
       ctx.lineTo(rightNormalEndX, rightNormalEndY);
       ctx.stroke();
-      ctx.setLineDash([]); // Reset to solid line
+      ctx.setLineDash([]);
     });
   }, [oddAngle, lineAngle, colors, wavelengths]);
 

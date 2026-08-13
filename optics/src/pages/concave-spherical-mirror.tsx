@@ -19,25 +19,22 @@ const ConcaveMirrorSimulation: React.FC<ConcaveMirrorSimulationProps> = () => {
   const { setTheme } = useTheme();
   setTheme("dark");
 
-  // no scrollbar
   document.body.style.overflow = "hidden";
   document.documentElement.style.overflow = "hidden";
 
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [objPos, setObjPos] = useState({ x: 1.5, y: 0.5 }); // object position
-  const [radiusOfCurvature, setRadiusOfCurvature] = useState(5); // radius of curvature
+  const [objPos, setObjPos] = useState({ x: 1.5, y: 0.5 });
+  const [radiusOfCurvature, setRadiusOfCurvature] = useState(5);
 
   const [showEquations, setShowEquations] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const imgRef = useRef<HTMLImageElement | null>(null);
 
-  // popup state 
   const [isDraggingPopup, setIsDraggingPopup] = useState(false);
   const [popupPos, setPopupPos] = useState({ x: 100, y: 100 });
   const popupDragOffset = useRef({ x: 0, y: 0 });
 
-  // handle file upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -63,7 +60,6 @@ const ConcaveMirrorSimulation: React.FC<ConcaveMirrorSimulationProps> = () => {
     };
   };
 
-  // calculate image position using the exact concave mirror equations
   const calculateImagePosition = (objX: number, objY: number) => {
     const R = radiusOfCurvature;
 
@@ -91,7 +87,6 @@ const ConcaveMirrorSimulation: React.FC<ConcaveMirrorSimulationProps> = () => {
     return { x: X, y: Y, type };
   };
 
-  // create concave mirror shape
   const createMirrorShape = (
     ctx: CanvasRenderingContext2D,
     screen: (x: number, y: number) => { x: number; y: number },
@@ -99,7 +94,7 @@ const ConcaveMirrorSimulation: React.FC<ConcaveMirrorSimulationProps> = () => {
   ) => {
     ctx.beginPath();
     ctx.arc(
-      screen(0, 0).x, // center at origin
+      screen(0, 0).x,
       screen(0, 0).y,
       radiusOfCurvature * vp.scale,
       Math.PI / 2,
@@ -127,7 +122,6 @@ const ConcaveMirrorSimulation: React.FC<ConcaveMirrorSimulationProps> = () => {
     setIsDraggingPopup(false);
   };
 
-  // Add popup drag event listeners
   React.useEffect(() => {
     if (isDraggingPopup) {
       document.addEventListener("mousemove", handlePopupMouseMove);
@@ -185,11 +179,9 @@ const ConcaveMirrorSimulation: React.FC<ConcaveMirrorSimulationProps> = () => {
           if (!imageSrc) return;
           const mouseWorld = screenToWorld(e.clientX, e.clientY, vp, canvas);
 
-          // Assume image width/height in world units
           const imgW = 0.5;
           const imgH = 0.5;
 
-          // Check if clicked inside object bounds
           if (
             mouseWorld.x >= objPos.x - imgW / 2 &&
             mouseWorld.x <= objPos.x + imgW / 2 &&
@@ -211,10 +203,9 @@ const ConcaveMirrorSimulation: React.FC<ConcaveMirrorSimulationProps> = () => {
           if (!isDragging) return;
           const mouseWorld = screenToWorld(e.clientX, e.clientY, vp, canvas);
 
-          // Allow object to be placed anywhere
           let newX = mouseWorld.x - dragOffset.current.x;
 
-          // Ensure object doesn't get too close to the mirror (minimum distance)
+          // keep the object off the mirror surface
           newX = Math.max(0.1, newX);
           setObjPos({
             x: newX,
@@ -235,7 +226,6 @@ const ConcaveMirrorSimulation: React.FC<ConcaveMirrorSimulationProps> = () => {
             };
           };
 
-          // Draw mirror at x=0
           const mirrorHeight = 10;
           const halfHeight = mirrorHeight / 2;
 
@@ -258,7 +248,6 @@ const ConcaveMirrorSimulation: React.FC<ConcaveMirrorSimulationProps> = () => {
           const center = screen(0, 0);
           const focalPoint = screen(-radiusOfCurvature / 2, 0);
 
-          // Draw center of curvature
           ctx.fillStyle = "#0066cc";
           ctx.strokeStyle = "#ffffff";
           ctx.lineWidth = 1;
@@ -267,21 +256,18 @@ const ConcaveMirrorSimulation: React.FC<ConcaveMirrorSimulationProps> = () => {
           ctx.fill();
           ctx.stroke();
 
-          // Draw focal point
           ctx.fillStyle = "#ff6600";
           ctx.beginPath();
           ctx.arc(focalPoint.x, focalPoint.y, 5, 0, 2 * Math.PI);
           ctx.fill();
           ctx.stroke();
 
-          // Add labels
           ctx.fillStyle = "#ffffff";
           ctx.font = "12px Arial";
           ctx.textAlign = "center";
           ctx.fillText("C", center.x, center.y - 10);
           ctx.fillText("F", focalPoint.x, focalPoint.y - 10);
 
-          // Draw uploaded image + calculated image
           if (imageSrc) {
             if (!imgRef.current) {
               imgRef.current = new Image();
@@ -303,12 +289,12 @@ const ConcaveMirrorSimulation: React.FC<ConcaveMirrorSimulationProps> = () => {
               bottomLeft.y - topLeft.y
             );
 
-            // --- Draw warped image using true pixel-by-pixel mapping ---
+            // remap the image pixel-by-pixel through the mirror equations
             const imagePos = calculateImagePosition(objPos.x, objPos.y);
             if (imagePos) {
               ctx.save();
 
-              const pixelResolution = 200; // Resolution for performance
+              const pixelResolution = 200;
 
               for (let y = 0; y < pixelResolution; y++) {
                 for (let x = 0; x < pixelResolution; x++) {
@@ -320,7 +306,6 @@ const ConcaveMirrorSimulation: React.FC<ConcaveMirrorSimulationProps> = () => {
                   const warpedPos = calculateImagePosition(worldX, worldY);
 
                   if (warpedPos) {
-                    // Calculate the source position in the original image
                     const srcX = (x / pixelResolution) * img.width;
                     const srcY = (y / pixelResolution) * img.height;
 
@@ -346,43 +331,37 @@ const ConcaveMirrorSimulation: React.FC<ConcaveMirrorSimulationProps> = () => {
               ctx.restore();
             }
 
-            // Draw construction lines
             if (imagePos) {
               const R = radiusOfCurvature;
               const mirrorX = -Math.sqrt(R * R - objPos.y * objPos.y);
               const mirrorY = objPos.y;
 
-              // Main rays
               ctx.strokeStyle = "#ff4444";
               ctx.lineWidth = 3;
               ctx.setLineDash([]);
 
               const ray2Start = screen(objPos.x, objPos.y);
-              const ray2Mirror = screen(mirrorX, mirrorY); // Where horizontal ray hits mirror
+              const ray2Mirror = screen(mirrorX, mirrorY);
               const ray2End = screen(imagePos.x, imagePos.y);
 
-              // Draw the horizontal incident ray
               ctx.beginPath();
               ctx.moveTo(ray2Start.x, ray2Start.y);
               ctx.lineTo(ray2Mirror.x, ray2Mirror.y);
               ctx.stroke();
 
-              // Draw the reflected ray from mirror to image
               ctx.beginPath();
               ctx.moveTo(ray2Mirror.x, ray2Mirror.y);
               ctx.lineTo(ray2End.x, ray2End.y);
               ctx.stroke();
 
-              // Construction lines
               ctx.strokeStyle = "#666666";
               ctx.lineWidth = 2;
               ctx.setLineDash([8, 4]);
 
               const ray3Start = screen(imagePos.x, imagePos.y);
-              const ray3Center = screen(0, 0); // Center of curvature
-              const ray3Mirror = screen(mirrorX, mirrorY); // Mirror surface
+              const ray3Center = screen(0, 0);
+              const ray3Mirror = screen(mirrorX, mirrorY);
 
-              // Draw the line from image through center to mirror
               ctx.beginPath();
               ctx.moveTo(ray3Start.x, ray3Start.y);
               ctx.lineTo(ray3Center.x, ray3Center.y);
@@ -396,22 +375,18 @@ const ConcaveMirrorSimulation: React.FC<ConcaveMirrorSimulationProps> = () => {
               ctx.lineTo(ray1End.x, ray1End.y);
               ctx.stroke();
 
-              // Reset line style
               ctx.setLineDash([]);
               ctx.lineWidth = 1;
             }
           }
 
-          // Draw coordinate labels
           ctx.fillStyle = "#ffffff";
           ctx.font = "14px Arial";
           ctx.textAlign = "center";
 
-          // Object label
           const objLabel = screen(objPos.x, objPos.y + 0.8);
           ctx.fillText("(x, y)", objLabel.x, objLabel.y);
 
-          // Image label
           if (imageSrc) {
             const imagePos = calculateImagePosition(objPos.x, objPos.y);
             if (imagePos) {

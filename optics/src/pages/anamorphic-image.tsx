@@ -15,26 +15,23 @@ export default function AnamorphicImage() {
   const { setTheme } = useTheme();
   setTheme("dark");
 
-  // no scrollbar
   document.body.style.overflow = "hidden";
   document.documentElement.style.overflow = "hidden";
 
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [objPos] = useState({ x: 0, y: 0 }); // object position - fixed behind mirror (virtual image)
+  const [objPos] = useState({ x: 0, y: 0 });
   const radiusOfCurvature = 1;
-  const [circleRadius, setCircleRadius] = useState(3); // adjustable radius R
-  const [sectorDegrees, setSectorDegrees] = useState(180); // adjustable sector angle in degrees
+  const [circleRadius, setCircleRadius] = useState(3);
+  const [sectorDegrees, setSectorDegrees] = useState(180);
 
   const [showEquations, setShowEquations] = useState(false);
 
   const imgRef = useRef<HTMLImageElement | null>(null);
 
-  // popup state
   const [isDraggingPopup, setIsDraggingPopup] = useState(false);
   const [popupPos, setPopupPos] = useState({ x: 100, y: 100 });
   const popupDragOffset = useRef({ x: 0, y: 0 });
 
-  // handle file upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -44,40 +41,33 @@ export default function AnamorphicImage() {
       setImageSrc(event.target?.result as string);
     };
     reader.readAsDataURL(file);
-
-    // console.log("file read");
   };
 
-  // map each pixel to its position in the arc sector
+  // map each pixel to its position in the arc sector: rows map to radius
+  // (bottom = outer arc, top = inner arc), columns map to angle within the sector
   const calculateImagePosition = (imgX: number, imgY: number) => {
     const baseCenter = { x: 0, y: -Math.sqrt(2) / 2 };
 
-    // figure out which row this pixel is in (bottom = 0, top = 1)
     const imgH = Math.sqrt(2);
     const rowPosition = (imgY + imgH / 2) / imgH;
 
-    // map the row to an arc radius - bottom rows go on outer arc, top rows on inner arc
     const innerRadius = 1;
     const outerRadius = circleRadius;
     const mappedR = outerRadius - rowPosition * (outerRadius - innerRadius);
 
-    // map horizontal position to angle within the sector
     const imgW = Math.sqrt(2);
     const horizontalPosition = 1 - (imgX + imgW / 2) / imgW;
 
-    // convert to the right angle for the sector
     const sectorSpanRad = (sectorDegrees * Math.PI) / 180;
     const startAngle = (90 - sectorDegrees / 2) * (Math.PI / 180);
     const mappedTheta = startAngle + horizontalPosition * sectorSpanRad;
 
-    // calculate where this pixel should go
     const mappedX = baseCenter.x + mappedR * Math.cos(mappedTheta);
     const mappedY = baseCenter.y + mappedR * -Math.sin(mappedTheta);
 
     return { x: mappedX, y: mappedY, type: "real" };
   };
 
-  // create convex mirror shape
   const createMirrorShape = (
     ctx: CanvasRenderingContext2D,
     screen: (x: number, y: number) => { x: number; y: number },
@@ -93,7 +83,6 @@ export default function AnamorphicImage() {
     );
   };
 
-  // popup drag handlers
   const handlePopupMouseDown = (e: React.MouseEvent) => {
     setIsDraggingPopup(true);
     popupDragOffset.current = {
@@ -203,20 +192,17 @@ export default function AnamorphicImage() {
           ctx.fill();
           ctx.stroke();
 
-          // Draw two circles centered at (0, -√2/2)
           const circleCenter = { x: 0, y: -Math.sqrt(2) / 2 };
 
           // Convert degrees to radians and adjust for positive y-axis opening
-          const startAngle = (90 - sectorDegrees / 2) * (Math.PI / 180); // Start angle
-          const endAngle = (90 + sectorDegrees / 2) * (Math.PI / 180); // End angle
+          const startAngle = (90 - sectorDegrees / 2) * (Math.PI / 180);
+          const endAngle = (90 + sectorDegrees / 2) * (Math.PI / 180);
 
-          // Draw unit circle as a sector matching the outer arc
           ctx.strokeStyle = "#00ff00";
           ctx.lineWidth = 2;
           ctx.setLineDash([]);
           ctx.beginPath();
 
-          // Draw the arc for unit circle
           ctx.arc(
             screen(circleCenter.x, circleCenter.y).x,
             screen(circleCenter.x, circleCenter.y).y,
@@ -227,23 +213,19 @@ export default function AnamorphicImage() {
 
           ctx.stroke();
 
-          // Draw line connecting the opening edges of the two sectors
           ctx.strokeStyle = "#ffffff";
           ctx.lineWidth = 1;
           ctx.setLineDash([]);
           ctx.beginPath();
 
-          // Calculate the opening point of inner sector (radius 1)
           const innerOpeningX = circleCenter.x + 1 * Math.cos(startAngle);
           const innerOpeningY = circleCenter.y + 1 * -Math.sin(startAngle);
 
-          // Calculate the opening point of outer sector (radius R)
           const outerOpeningX =
             circleCenter.x + circleRadius * Math.cos(startAngle);
           const outerOpeningY =
             circleCenter.y + circleRadius * -Math.sin(startAngle);
 
-          // Draw line from inner to outer opening
           ctx.moveTo(
             screen(innerOpeningX, innerOpeningY).x,
             screen(innerOpeningX, innerOpeningY).y
@@ -254,23 +236,19 @@ export default function AnamorphicImage() {
           );
           ctx.stroke();
 
-          // Draw line connecting the closing edges of the two sectors (other side)
           ctx.strokeStyle = "#ffffff";
           ctx.lineWidth = 1;
           ctx.setLineDash([]);
           ctx.beginPath();
 
-          // Calculate the closing point of inner sector (radius 1)
           const innerClosingX = circleCenter.x + 1 * Math.cos(endAngle);
           const innerClosingY = circleCenter.y + 1 * -Math.sin(endAngle);
 
-          // Calculate the closing point of outer sector (radius R)
           const outerClosingX =
             circleCenter.x + circleRadius * Math.cos(endAngle);
           const outerClosingY =
             circleCenter.y + circleRadius * -Math.sin(endAngle);
 
-          // Draw line from inner to outer closing
           ctx.moveTo(
             screen(innerClosingX, innerClosingY).x,
             screen(innerClosingX, innerClosingY).y
@@ -281,13 +259,11 @@ export default function AnamorphicImage() {
           );
           ctx.stroke();
 
-          // Draw sector with adjustable radius R and angle
           ctx.strokeStyle = "#ff6600";
           ctx.lineWidth = 2;
           ctx.setLineDash([]);
           ctx.beginPath();
 
-          // Draw the arc
           ctx.arc(
             screen(circleCenter.x, circleCenter.y).x,
             screen(circleCenter.x, circleCenter.y).y,
@@ -298,16 +274,13 @@ export default function AnamorphicImage() {
 
           ctx.stroke();
 
-          // Add mirror center line for better visibility (vertical orientation)
           ctx.strokeStyle = "#0066cc";
           ctx.lineWidth = 1;
           ctx.setLineDash([2, 2]);
           ctx.beginPath();
 
-          // Draw center of curvature
           const center = screen(0, 0);
 
-          // Draw center of curvature
           ctx.fillStyle = "#0066cc";
           ctx.strokeStyle = "#ffffff";
           ctx.lineWidth = 1;
@@ -316,23 +289,20 @@ export default function AnamorphicImage() {
           ctx.fill();
           ctx.stroke();
 
-          // Add labels
           ctx.fillStyle = "#ffffff";
           ctx.font = "12px Arial";
           ctx.textAlign = "center";
           ctx.fillText("C", center.x, center.y - 10);
 
-          // Draw uploaded image + calculated image
           if (imageSrc) {
             if (!imgRef.current) {
               imgRef.current = new Image();
               imgRef.current.src = imageSrc;
             }
             const img = imgRef.current;
-            const imgW = Math.sqrt(2); // Width in world coordinates
-            const imgH = Math.sqrt(2); // Height in world coordinates
+            const imgW = Math.sqrt(2);
+            const imgH = Math.sqrt(2);
 
-            // --- Draw original ---
             const topLeft = screen(objPos.x - imgW / 2, objPos.y + imgH / 2);
             const topRight = screen(objPos.x + imgW / 2, objPos.y + imgH / 2);
             const bottomLeft = screen(objPos.x - imgW / 2, objPos.y - imgH / 2);
@@ -345,18 +315,14 @@ export default function AnamorphicImage() {
               bottomLeft.y - topLeft.y
             );
 
-            // --- Draw warped image using convex mirror equations for accurate positioning ---
             if (imageSrc) {
               ctx.save();
 
-              // Draw the warped image directly onto the main canvas
-              // Using the convex mirror equations to map each pixel to its correct position
-              const pixelResolution = 500; // Resolution for performance
+              const pixelResolution = 500;
 
               // Map each pixel of the source image using the convex mirror equations
               for (let y = 0; y < pixelResolution; y++) {
                 for (let x = 0; x < pixelResolution; x++) {
-                  // Convert pixel coordinates to world coordinates
                   const worldX =
                     objPos.x - imgW / 2 + (imgW * x) / pixelResolution;
                   const worldY =
@@ -365,14 +331,10 @@ export default function AnamorphicImage() {
                   const warpedPos = calculateImagePosition(worldX, worldY);
 
                   if (warpedPos) {
-                    // Calculate the source position in the original image
                     const srcX = (x / pixelResolution) * img.width;
                     const srcY = (y / pixelResolution) * img.height;
+                    const pixelSize = 4;
 
-                    // Calculate the size of each pixel sample
-                    const pixelSize = 4; // Fixed pixel size for clear sampling
-
-                    // Draw this pixel at its calculated position from the mirror equations
                     const warpedScreen = screen(warpedPos.x, warpedPos.y);
 
                     ctx.drawImage(
@@ -396,7 +358,6 @@ export default function AnamorphicImage() {
         }}
       />
 
-      {/* Floating Equations Popup */}
       {showEquations && (
         <div
           className="fixed max-w-sm z-[999999] cursor-move"

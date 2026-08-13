@@ -229,7 +229,6 @@ const CoordinateGrid: React.FC<CoordinateGridProps> = ({
     return v.toPrecision(3);
   };
 
-  // draw grid
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -242,7 +241,6 @@ const CoordinateGrid: React.FC<CoordinateGridProps> = ({
     }
   }, [renderOverlay]);
 
-  // initialise resize and listeners
   useEffect(() => {
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
@@ -350,7 +348,6 @@ const CoordinateGrid: React.FC<CoordinateGridProps> = ({
     };
   }, [draw, onViewportChange]);
 
-  // initial draw
   useEffect(() => {
     draw();
   }, [draw]);

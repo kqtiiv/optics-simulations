@@ -19,25 +19,22 @@ const ConvexMirrorSimulation: React.FC<ConvexMirrorSimulationProps> = () => {
   const { setTheme } = useTheme();
   setTheme("dark");
 
-  // no scrollbar
   document.body.style.overflow = "hidden";
   document.documentElement.style.overflow = "hidden";
 
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [objPos, setObjPos] = useState({ x: 5, y: 0 }); // object position - initially at (0, 6)
-  const [radiusOfCurvature, setRadiusOfCurvature] = useState(0.5); // radius of curvature - match the diagram
+  const [objPos, setObjPos] = useState({ x: 5, y: 0 });
+  const [radiusOfCurvature, setRadiusOfCurvature] = useState(0.5);
 
   const [showEquations, setShowEquations] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const imgRef = useRef<HTMLImageElement | null>(null);
 
-  // popup state 
   const [isDraggingPopup, setIsDraggingPopup] = useState(false);
   const [popupPos, setPopupPos] = useState({ x: 100, y: 100 });
   const popupDragOffset = useRef({ x: 0, y: 0 });
 
-  // handle file upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -49,7 +46,6 @@ const ConvexMirrorSimulation: React.FC<ConvexMirrorSimulationProps> = () => {
     reader.readAsDataURL(file);
   };
 
-  // convert screen pixel → world coordinate
   const screenToWorld = (
     px: number,
     py: number,
@@ -64,46 +60,42 @@ const ConvexMirrorSimulation: React.FC<ConvexMirrorSimulationProps> = () => {
     };
   };
 
-  // calculate image position using convex mirror equations from the image
   const calculateImagePosition = (objX: number, objY: number) => {
     const R = radiusOfCurvature;
 
-    if (Math.abs(objY) > R) return null; // point outside mirror bounds
-    const alpha = 0.5 * Math.atan2(objY, objX); // angle of reflection
+    if (Math.abs(objY) > R) return null;
+    const alpha = 0.5 * Math.atan2(objY, objX);
     const k = objX / Math.cos(2 * alpha);
 
     const numerator = k * Math.sin(alpha);
     const denominator =
       k / R - Math.cos(alpha) + (objX / objY) * Math.sin(alpha);
 
-    if (Math.abs(denominator) < 1e-10) return null; // avoid division by zero
+    if (Math.abs(denominator) < 1e-10) return null;
 
     const Y = numerator / denominator;
-    const X = (objX * Y) / objY; // exact formula from image: X = x - (Y/y)
+    const X = (objX * Y) / objY;
 
-    // for convex mirrors, all images are virtual (behind mirror)
+    // convex mirrors only ever form virtual images (behind the mirror)
     return { x: X, y: Y, type: "virtual" };
   };
 
-  // create convex mirror shape
+  // semicircle of the given radius, curving outward toward +x
   const createMirrorShape = (
     ctx: CanvasRenderingContext2D,
     screen: (x: number, y: number) => { x: number; y: number },
     vp: { cx: number; cy: number; scale: number }
   ) => {
-    // create convex mirror as a semicircle with radius 5, normal at x=0
-    // for convex mirror, the curved surface faces outward (toward positive x)
     ctx.beginPath();
     ctx.arc(
-      screen(0, 0).x, // center at origin
+      screen(0, 0).x,
       screen(0, 0).y,
-      radiusOfCurvature * vp.scale, // use actual radius scaled by viewport
-      -Math.PI / 2, // start angle (top side)
-      Math.PI / 2 // end angle (bottom side) - creates vertical semicircle curved outward
+      radiusOfCurvature * vp.scale,
+      -Math.PI / 2,
+      Math.PI / 2
     );
   };
 
-  // popup drag handlers
   const handlePopupMouseDown = (e: React.MouseEvent) => {
     setIsDraggingPopup(true);
     popupDragOffset.current = {
@@ -124,7 +116,6 @@ const ConvexMirrorSimulation: React.FC<ConvexMirrorSimulationProps> = () => {
     setIsDraggingPopup(false);
   };
 
-  // add popup drag event listeners
   React.useEffect(() => {
     if (isDraggingPopup) {
       document.addEventListener("mousemove", handlePopupMouseMove);
@@ -182,11 +173,9 @@ const ConvexMirrorSimulation: React.FC<ConvexMirrorSimulationProps> = () => {
           if (!imageSrc) return;
           const mouseWorld = screenToWorld(e.clientX, e.clientY, vp, canvas);
 
-          // Assume image width/height in world units
           const imgW = 0.5;
           const imgH = 0.5;
 
-          // Check if clicked inside object bounds
           if (
             mouseWorld.x >= objPos.x - imgW / 2 &&
             mouseWorld.x <= objPos.x + imgW / 2 &&
@@ -208,11 +197,9 @@ const ConvexMirrorSimulation: React.FC<ConvexMirrorSimulationProps> = () => {
           if (!isDragging) return;
           const mouseWorld = screenToWorld(e.clientX, e.clientY, vp, canvas);
 
-          // Allow object to be placed anywhere
           let newX = mouseWorld.x - dragOffset.current.x;
+          newX = Math.max(0.1, newX); // keep the object off the mirror surface
 
-          // Ensure object doesn't get too close to the mirror (minimum distance)
-          newX = Math.max(0.1, newX);
           setObjPos({
             x: newX,
             y: mouseWorld.y - dragOffset.current.y,
@@ -239,17 +226,14 @@ const ConvexMirrorSimulation: React.FC<ConvexMirrorSimulationProps> = () => {
           createMirrorShape(ctx, screen, vp);
           ctx.stroke();
 
-          // Add mirror center line for better visibility (vertical orientation)
           ctx.strokeStyle = "#0066cc";
           ctx.lineWidth = 1;
           ctx.setLineDash([2, 2]);
           ctx.beginPath();
 
-          // Draw center of curvature and focal point
           const center = screen(0, 0);
-          const focalPoint = screen(radiusOfCurvature / 2, 0); // Focal point is behind convex mirror
+          const focalPoint = screen(radiusOfCurvature / 2, 0);
 
-          // Draw center of curvature
           ctx.fillStyle = "#0066cc";
           ctx.strokeStyle = "#ffffff";
           ctx.lineWidth = 1;
@@ -258,31 +242,27 @@ const ConvexMirrorSimulation: React.FC<ConvexMirrorSimulationProps> = () => {
           ctx.fill();
           ctx.stroke();
 
-          // Draw focal point
           ctx.fillStyle = "#ff6600";
           ctx.beginPath();
           ctx.arc(focalPoint.x, focalPoint.y, 5, 0, 2 * Math.PI);
           ctx.fill();
           ctx.stroke();
 
-          // Add labels
           ctx.fillStyle = "#ffffff";
           ctx.font = "12px Arial";
           ctx.textAlign = "center";
           ctx.fillText("C", center.x, center.y - 10);
           ctx.fillText("F", focalPoint.x, focalPoint.y - 10);
 
-          // Draw uploaded image + calculated image
           if (imageSrc) {
             if (!imgRef.current) {
               imgRef.current = new Image();
               imgRef.current.src = imageSrc;
             }
             const img = imgRef.current;
-            const imgW = 1; // Width in world coordinates
-            const imgH = 1; // Height in world coordinates
+            const imgW = 1;
+            const imgH = 1;
 
-            // --- Draw original ---
             const topLeft = screen(objPos.x - imgW / 2, objPos.y + imgH / 2);
             const topRight = screen(objPos.x + imgW / 2, objPos.y + imgH / 2);
             const bottomLeft = screen(objPos.x - imgW / 2, objPos.y - imgH / 2);
@@ -295,19 +275,15 @@ const ConvexMirrorSimulation: React.FC<ConvexMirrorSimulationProps> = () => {
               bottomLeft.y - topLeft.y
             );
 
-            // --- Draw warped image using convex mirror equations for accurate positioning ---
+            // remap the source image pixel-by-pixel through the mirror equations
             const imagePos = calculateImagePosition(objPos.x, objPos.y);
             if (imagePos) {
               ctx.save();
 
-              // Draw the warped image directly onto the main canvas
-              // Using the convex mirror equations to map each pixel to its correct position
-              const pixelResolution = 200; // Resolution for performance
+              const pixelResolution = 200;
 
-              // Map each pixel of the source image using the convex mirror equations
               for (let y = 0; y < pixelResolution; y++) {
                 for (let x = 0; x < pixelResolution; x++) {
-                  // Convert pixel coordinates to world coordinates
                   const worldX =
                     objPos.x - imgW / 2 + (imgW * x) / pixelResolution;
                   const worldY =
@@ -316,11 +292,8 @@ const ConvexMirrorSimulation: React.FC<ConvexMirrorSimulationProps> = () => {
                   const warpedPos = calculateImagePosition(worldX, worldY);
 
                   if (warpedPos) {
-                    // Calculate the source position in the original image
                     const srcX = (x / pixelResolution) * img.width;
                     const srcY = (y / pixelResolution) * img.height;
-
-                    // Calculate the size of each pixel sample
                     const pixelSize = 4;
 
                     const warpedScreen = screen(warpedPos.x, warpedPos.y);
@@ -343,14 +316,11 @@ const ConvexMirrorSimulation: React.FC<ConvexMirrorSimulationProps> = () => {
               ctx.restore();
             }
 
-            // Draw ray tracing construction lines (only if we have an image position)
             if (imagePos) {
-              // Calculate where the horizontal ray hits the mirror surface
               const R = radiusOfCurvature;
-              const mirrorX = Math.sqrt(R * R - objPos.y * objPos.y); // For convex mirror, surface is at positive x
+              const mirrorX = Math.sqrt(R * R - objPos.y * objPos.y);
               const mirrorY = objPos.y;
 
-              // Main rays (solid lines, brighter color)
               ctx.strokeStyle = "#ff4444";
               ctx.lineWidth = 3;
               ctx.setLineDash([]);
@@ -358,13 +328,12 @@ const ConvexMirrorSimulation: React.FC<ConvexMirrorSimulationProps> = () => {
               const ray1Start = screen(objPos.x, objPos.y);
               const ray1Mirror = screen(mirrorX, mirrorY);
 
-              // Draw the horizontal incident ray
               ctx.beginPath();
               ctx.moveTo(ray1Start.x, ray1Start.y);
               ctx.lineTo(ray1Mirror.x, ray1Mirror.y);
               ctx.stroke();
 
-              const normalX = mirrorX - 0; // Vector from center to mirror point
+              const normalX = mirrorX - 0;
               const normalY = mirrorY - 0;
               const normalLength = Math.sqrt(
                 normalX * normalX + normalY * normalY
@@ -372,7 +341,6 @@ const ConvexMirrorSimulation: React.FC<ConvexMirrorSimulationProps> = () => {
               const unitNormalX = normalX / normalLength;
               const unitNormalY = normalY / normalLength;
 
-              // Calculate incident ray vector (from object to mirror)
               const incidentX = mirrorX - objPos.x;
               const incidentY = mirrorY - objPos.y;
 
@@ -381,7 +349,6 @@ const ConvexMirrorSimulation: React.FC<ConvexMirrorSimulationProps> = () => {
               const reflectedX = incidentX - 2 * dotProduct * unitNormalX;
               const reflectedY = incidentY - 2 * dotProduct * unitNormalY;
 
-              // Normalize and scale the reflected vector
               const reflectedLength = 2;
               const reflectedMagnitude = Math.sqrt(
                 reflectedX * reflectedX + reflectedY * reflectedY
@@ -396,33 +363,31 @@ const ConvexMirrorSimulation: React.FC<ConvexMirrorSimulationProps> = () => {
               ctx.lineTo(ray1ReflectedEnd.x, ray1ReflectedEnd.y);
               ctx.stroke();
 
-              const extendedLength = 10; // Long enough to ensure intersection
+              const extendedLength = 10;
               const ray1ExtendedEnd = screen(
                 mirrorX - (reflectedX / reflectedMagnitude) * extendedLength,
                 mirrorY - (reflectedY / reflectedMagnitude) * extendedLength
               );
 
-              // Draw the extended reflected ray (dashed, same color as reflected ray)
+              // dashed backward extension showing the virtual image geometry
               ctx.strokeStyle = "#ff4444";
               ctx.lineWidth = 3;
-              ctx.setLineDash([8, 4]); // Dashed line for extension
+              ctx.setLineDash([8, 4]);
               ctx.beginPath();
               ctx.moveTo(ray1Mirror.x, ray1Mirror.y);
               ctx.lineTo(ray1ExtendedEnd.x, ray1ExtendedEnd.y);
               ctx.stroke();
 
-              ctx.strokeStyle = "#00ff00"; // Green color for normal
+              ctx.strokeStyle = "#00ff00";
               ctx.lineWidth = 2;
-              ctx.setLineDash([4, 4]); // Dashed line for normal
+              ctx.setLineDash([4, 4]);
 
-              // Calculate normal vector from center to mirror point
               const normalVectorX = mirrorX - 0;
               const normalVectorY = mirrorY - 0;
               const normalVectorLength = Math.sqrt(
                 normalVectorX * normalVectorX + normalVectorY * normalVectorY
               );
 
-              // Extend normal beyond mirror surface
               const extendedNormalLength = 0.3;
               const extendedNormalX =
                 mirrorX +
@@ -432,36 +397,32 @@ const ConvexMirrorSimulation: React.FC<ConvexMirrorSimulationProps> = () => {
                 (normalVectorY / normalVectorLength) * extendedNormalLength;
 
               ctx.beginPath();
-              ctx.moveTo(center.x, center.y); // From center of curvature (origin)
+              ctx.moveTo(center.x, center.y);
               ctx.lineTo(
                 screen(extendedNormalX, extendedNormalY).x,
                 screen(extendedNormalX, extendedNormalY).y
-              ); // Extended beyond mirror
+              );
               ctx.stroke();
 
-              // Ray from object through center of curvature
               const ray2Start = screen(objPos.x, objPos.y);
               const ray2Center = screen(0, 0);
 
-              // Draw the ray from object to center of curvature
               ctx.beginPath();
               ctx.moveTo(ray2Start.x, ray2Start.y);
               ctx.lineTo(ray2Center.x, ray2Center.y);
               ctx.stroke();
 
-              const ray2MirrorX = Math.sqrt(R * R - objPos.y * objPos.y); // Where ray hits mirror
+              const ray2MirrorX = Math.sqrt(R * R - objPos.y * objPos.y);
               const ray2MirrorY = objPos.y;
 
-              // Extend the normal beyond the mirror surface for Ray 2 as well
-              const ray2NormalVectorX = ray2MirrorX - 0; // Vector from center to mirror point
+              const ray2NormalVectorX = ray2MirrorX - 0;
               const ray2NormalVectorY = ray2MirrorY - 0;
               const ray2NormalVectorLength = Math.sqrt(
                 ray2NormalVectorX * ray2NormalVectorX +
                   ray2NormalVectorY * ray2NormalVectorY
               );
 
-              // Extend normal beyond mirror surface
-              const ray2ExtendedNormalLength = 0.3; // Extension length in world coordinates
+              const ray2ExtendedNormalLength = 0.3;
               const ray2ExtendedNormalX =
                 ray2MirrorX +
                 (ray2NormalVectorX / ray2NormalVectorLength) *
@@ -471,33 +432,29 @@ const ConvexMirrorSimulation: React.FC<ConvexMirrorSimulationProps> = () => {
                 (ray2NormalVectorY / ray2NormalVectorLength) *
                   ray2ExtendedNormalLength;
 
-              ctx.strokeStyle = "#00ff00"; // Green color for normal
+              ctx.strokeStyle = "#00ff00";
               ctx.lineWidth = 2;
-              ctx.setLineDash([4, 4]); // Dashed line for normal
+              ctx.setLineDash([4, 4]);
               ctx.beginPath();
-              ctx.moveTo(center.x, center.y); // From center of curvature (origin)
+              ctx.moveTo(center.x, center.y);
               ctx.lineTo(
                 screen(ray2ExtendedNormalX, ray2ExtendedNormalY).x,
                 screen(ray2ExtendedNormalX, ray2ExtendedNormalY).y
-              ); // Extended beyond mirror
+              );
               ctx.stroke();
 
-              // Reset line style
               ctx.setLineDash([]);
               ctx.lineWidth = 1;
             }
           }
 
-          // Draw coordinate labels
           ctx.fillStyle = "#ffffff";
           ctx.font = "14px Arial";
           ctx.textAlign = "center";
 
-          // Object label
           const objLabel = screen(objPos.x, objPos.y + 0.8);
           ctx.fillText("(x, y)", objLabel.x, objLabel.y);
 
-          // Image label
           if (imageSrc) {
             const imagePos = calculateImagePosition(objPos.x, objPos.y);
             if (imagePos) {
@@ -515,7 +472,6 @@ const ConvexMirrorSimulation: React.FC<ConvexMirrorSimulationProps> = () => {
         }}
       />
 
-      {/* Floating Equations Popup */}
       {showEquations && (
         <div
           className="fixed max-w-sm z-[999999] cursor-move"

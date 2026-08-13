@@ -7,7 +7,6 @@ import {
 import { NavbarLogo } from "@/components/ui/resizable-navbar";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
 
-// Eye Structure Popup Component
 const EyeStructurePopup = ({
   isOpen,
   onClose,
@@ -40,7 +39,6 @@ const EyeStructurePopup = ({
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
-          {/* Left Column - Image */}
           <div className="space-y-4">
             <div className="text-center">
               <img
@@ -84,7 +82,6 @@ const EyeStructurePopup = ({
             </div>
           </div>
 
-          {/* Right Column - Function Information */}
           <div className="space-y-6">
             <div>
               <h3 className="text-xl font-semibold mb-4 text-white">
@@ -253,9 +250,8 @@ export default function EyeModel() {
     ctx.fillStyle = "#0a0a0a";
     ctx.fillRect(0, 0, W, H);
 
-    // eye outline (ellipse - width extends to retina position, height stays constant)
     const eyeWidth = mm(retinaDistanceFromCorneaMM);
-    const eyeHeight = mm(16); 
+    const eyeHeight = mm(16);
     const eyeCenterX = corneaX + mm(retinaDistanceFromCorneaMM / 2);
     ctx.strokeStyle = "#888";
     ctx.lineWidth = 2;
@@ -271,9 +267,7 @@ export default function EyeModel() {
     );
     ctx.stroke();
 
-    // draw corrective lens if enabled
     if (enableCorrection && Math.abs(rxDiopters) > 0.1) {
-      // draw corrective lens shape
       const correctiveLensX = corneaX - mm(8);
       const correctiveLensHeight = mm(12);
       const correctiveLensWidth = mm(2);
@@ -283,16 +277,12 @@ export default function EyeModel() {
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 2;
 
-      // curvature radius factor (more diopters = more curve)
       const curvature = Math.min(Math.abs(rxDiopters), 6);
 
-      // draw lens
       ctx.beginPath();
       ctx.moveTo(correctiveLensX, centerY - correctiveLensHeight / 2);
 
-      // left curve
       if (rxDiopters > 0) {
-        // convex left side
         ctx.quadraticCurveTo(
           correctiveLensX - curvature,
           centerY,
@@ -300,7 +290,6 @@ export default function EyeModel() {
           centerY + correctiveLensHeight / 2
         );
       } else {
-        // concave left side
         ctx.quadraticCurveTo(
           correctiveLensX + curvature,
           centerY,
@@ -309,15 +298,12 @@ export default function EyeModel() {
         );
       }
 
-      // bottom edge
       ctx.lineTo(
         correctiveLensX + correctiveLensWidth,
         centerY + correctiveLensHeight / 2
       );
 
-      // right curve
       if (rxDiopters > 0) {
-        // convex right side
         ctx.quadraticCurveTo(
           correctiveLensX + correctiveLensWidth + curvature,
           centerY,
@@ -325,7 +311,6 @@ export default function EyeModel() {
           centerY - correctiveLensHeight / 2
         );
       } else {
-        // concave right side
         ctx.quadraticCurveTo(
           correctiveLensX + correctiveLensWidth - curvature,
           centerY,
@@ -334,12 +319,10 @@ export default function EyeModel() {
         );
       }
 
-      // top edge
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
 
-      // add power label
       ctx.fillStyle = "#ffffff";
       ctx.font = "10px Arial";
       ctx.textAlign = "center";
@@ -349,11 +332,9 @@ export default function EyeModel() {
         centerY + mm(8)
       );
 
-      // draw focal point indicator
       const fLensMM = 1000 / Math.abs(rxDiopters);
       let focalPointX;
       if (rxDiopters > 0) {
-        // convex lens: real focal point in front
         focalPointX = correctiveLensX + mm(fLensMM);
         ctx.fillStyle = "#93c5fd";
         ctx.beginPath();
@@ -368,7 +349,6 @@ export default function EyeModel() {
         ctx.stroke();
         ctx.setLineDash([]);
       } else {
-        // concave lens: virtual focal point behind
         focalPointX = correctiveLensX - mm(fLensMM);
         ctx.fillStyle = "#fca5a5";
         ctx.beginPath();
@@ -391,15 +371,10 @@ export default function EyeModel() {
     ctx.closePath();
     ctx.fill();
 
-    // dynamic lens size based on accommodation (lens power)
-    // lower diopters = thinner lens (stretched), Higher diopters = thicker lens
-    const baseLensThickness = 5; // base thickness in mm
-    const baseLensWidth = 2; // base width in mm
-
-    // calculate lens dimensions based on power
-    // higher power = thicker lens, lower power = thinner lens
-    const lensThickness = baseLensThickness + (lensPower - 17) * 0.1; // adjust thickness based on power
-    const lensWidth = baseLensWidth - (lensPower - 17) * 0.05; // adjust width based on power
+    const baseLensThickness = 5;
+    const baseLensWidth = 2;
+    const lensThickness = baseLensThickness + (lensPower - 17) * 0.1;
+    const lensWidth = baseLensWidth - (lensPower - 17) * 0.05;
 
     ctx.fillStyle = "#fff2a6";
     ctx.beginPath();
@@ -430,34 +405,24 @@ export default function EyeModel() {
       const startX = corneaX - mm(25);
       let y = centerY + dy;
 
-      // draw incoming rays
       ctx.strokeStyle = "#e5e5e5";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(startX, y);
 
       if (enableCorrection && Math.abs(rxDiopters) > 0.1) {
-        const xL = corneaX - mm(8); // lens position (px)
-        const xC = corneaX; // cornea entry (px)
+        const xL = corneaX - mm(8);
+        const xC = corneaX;
 
-        // incoming ray, up to the corrective lens
         ctx.lineTo(xL, y);
         ctx.stroke();
 
-        // ----- thin-lens bend at the corrective lens -----
-        // signed focal length in mm (positive = converging, negative = diverging)
-        const fLensMM = 1000 / rxDiopters; 
-        // convert to pixels and get the (real or virtual) focal point on the optical axis
+        const fLensMM = 1000 / rxDiopters;
         const xF = xL + mm(fLensMM);
 
-        // slope of outgoing ray: line through (xL, y) and (xF, centerY)
-        // using (xL - xF) avoids sign mistakes and matches geometry for both signs
         const m = (y - centerY) / (xL - xF);
-
-        // y where this ray meets the cornea plane
         const yAtCornea = y + m * (xC - xL);
 
-        // draw the refracted segment (lens → cornea)
         ctx.strokeStyle = "#60a5fa";
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -465,14 +430,12 @@ export default function EyeModel() {
         ctx.lineTo(xC, yAtCornea);
         ctx.stroke();
 
-        // continue through the eye from the cornea with this updated y
         y = yAtCornea;
       } else {
         ctx.lineTo(corneaX, y);
         ctx.stroke();
       }
 
-      // rays through cornea and lens
       const postLensX = lensX + mm(0.5);
       ctx.strokeStyle = "#ffe066";
       ctx.lineWidth = 2;
@@ -485,7 +448,6 @@ export default function EyeModel() {
       ctx.lineTo(focusX, centerY);
       ctx.stroke();
 
-      // continue rays beyond focus point
       if (focusX < retinaX + mm(30)) {
         ctx.beginPath();
         ctx.moveTo(focusX, centerY);
@@ -554,7 +516,6 @@ export default function EyeModel() {
       );
     }
 
-    // draw ray legend
     const legendX = W - 200;
     const legendY = 30;
     ctx.fillStyle = "#ffffff";
@@ -562,7 +523,6 @@ export default function EyeModel() {
     ctx.textAlign = "left";
     ctx.fillText("Ray Path Legend:", legendX, legendY);
 
-    // incoming rays
     ctx.strokeStyle = "#e5e5e5";
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -572,7 +532,6 @@ export default function EyeModel() {
     ctx.fillStyle = "#e5e5e5";
     ctx.fillText("Incoming light", legendX + 25, legendY + 25);
 
-    // corrective lens rays
     if (enableCorrection && Math.abs(rxDiopters) > 0.1) {
       ctx.strokeStyle = "#60a5fa";
       ctx.lineWidth = 3;
@@ -584,7 +543,6 @@ export default function EyeModel() {
       ctx.fillText("Through corrective lens", legendX + 25, legendY + 45);
     }
 
-    // eye lens rays
     ctx.strokeStyle = "#ffe066";
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -594,11 +552,9 @@ export default function EyeModel() {
     ctx.fillStyle = "#ffe066";
     ctx.fillText("Through eye lens", legendX + 25, legendY + 65);
 
-    // lens type legend
     ctx.fillStyle = "#ffffff";
     ctx.fillText("Lens Types:", legendX, legendY + 90);
 
-    // positive lens
     ctx.fillStyle = "#93c5fd";
     ctx.beginPath();
     ctx.arc(legendX + 10, legendY + 110, 8, 0, Math.PI * 2);
@@ -611,7 +567,6 @@ export default function EyeModel() {
     ctx.fillStyle = "#93c5fd";
     ctx.fillText("Converging", legendX + 25, legendY + 115);
 
-    // negative lens
     ctx.fillStyle = "#fca5a5";
     ctx.beginPath();
     ctx.arc(legendX + 10, legendY + 130, 8, 0, Math.PI * 2);
@@ -624,11 +579,9 @@ export default function EyeModel() {
     ctx.fillStyle = "#fca5a5";
     ctx.fillText("Diverging", legendX + 25, legendY + 135);
 
-    // corrective lens shape legend
     ctx.fillStyle = "#ffffff";
     ctx.fillText("Corrective Lens Shapes:", legendX, legendY + 160);
 
-    // positive lens (convex-concave)
     ctx.strokeStyle = "#93c5fd";
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -642,7 +595,6 @@ export default function EyeModel() {
       legendY + 185
     );
 
-    // negative lens (concave-convex)
     ctx.strokeStyle = "#fca5a5";
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -656,7 +608,6 @@ export default function EyeModel() {
       legendY + 205
     );
 
-    // curvature increases with power
     ctx.fillStyle = "#ffffff";
     ctx.fillText(
       "*Curvature increases with diopter power",
@@ -664,11 +615,9 @@ export default function EyeModel() {
       legendY + 225
     );
 
-    // focal point explanation
     ctx.fillStyle = "#ffffff";
     ctx.fillText("Focal Points:", legendX, legendY + 265);
 
-    // convex lens focal point
     ctx.fillStyle = "#93c5fd";
     ctx.beginPath();
     ctx.arc(legendX + 10, legendY + 285, 3, 0, Math.PI * 2);
@@ -680,7 +629,6 @@ export default function EyeModel() {
       legendY + 290
     );
 
-    // concave lens focal point
     ctx.fillStyle = "#fca5a5";
     ctx.beginPath();
     ctx.arc(legendX + 10, legendY + 305, 3, 0, Math.PI * 2);
@@ -728,7 +676,6 @@ export default function EyeModel() {
     <div>
       <NavigationMenu viewport={false} className="z-10 p-1 m-auto bg-black">
         <NavigationMenuList className="flex flex-col gap-2">
-          {/* First row - Core controls */}
           <div className="flex items-center justify-between gap-4 text-white">
             <NavigationMenuItem>
               <div className="flex items-center space-x-2 text-white">
@@ -787,7 +734,6 @@ export default function EyeModel() {
             <NavbarLogo />
           </div>
 
-          {/* Second row - Corrective lens and presets */}
           <div className="flex items-center justify-between gap-4 text-white">
             <NavigationMenuItem>
               <div className="flex items-center space-x-2 text-white">
@@ -854,7 +800,6 @@ export default function EyeModel() {
       <div className="p-[20px] text-center flex flex-col items-center">
         <canvas ref={canvasRef} />
 
-        {/* Mobile Eye Structure Button */}
         <button
           className="md:hidden mt-4 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium"
           onClick={() => setShowEyeStructure(true)}
@@ -863,7 +808,6 @@ export default function EyeModel() {
         </button>
       </div>
 
-      {/* Eye Structure Popup */}
       <EyeStructurePopup
         isOpen={showEyeStructure}
         onClose={() => setShowEyeStructure(false)}
